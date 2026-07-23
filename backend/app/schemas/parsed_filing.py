@@ -8,6 +8,14 @@ class FilingSection:
 
 
 @dataclass
+class FilingChunk:
+    chunk_id: int
+    section: str
+    text: str
+    token_count: int
+
+
+@dataclass
 class ParsedFiling:
     company: str
     ticker: str
@@ -15,4 +23,5 @@ class ParsedFiling:
     filing_date: str
     title: str
     raw_text: str
+
     sections: list[FilingSection] = field(default_factory=list)
