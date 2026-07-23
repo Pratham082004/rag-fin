@@ -32,9 +32,10 @@ class settings(BaseSettings):
     # configuration for Storage
     REPORT_STORAGE: str
 
-    # configuration for AI
-    EMBEDDING_MODEL: str
-    LLM_MODEL: str
+    # configuration for AI  
+    EMBEDDING_PROVIDER: str = "gemini"
+    GEMINI_API_KEY: str
+    GEMINI_EMBEDDING_MODEL: str = "gemini-embedding-001"
 
     model_config = SettingsConfigDict(
         env_file=".env",
