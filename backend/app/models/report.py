@@ -1,6 +1,6 @@
-from datetime import date
+from datetime import date, datetime
 
-from sqlalchemy import ForeignKey, String
+from sqlalchemy import DateTime, ForeignKey, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base
@@ -15,17 +15,34 @@ class Report(Base):
         ForeignKey("companies.id")
     )
 
-    report_type: Mapped[str] = mapped_column(
-        String(20)
-    )
+    report_type: Mapped[str] = mapped_column(String(20))
 
     fiscal_year: Mapped[int]
 
     fiscal_quarter: Mapped[int | None]
 
+    filing_date: Mapped[date]
+
     report_date: Mapped[date]
 
-    pdf_path: Mapped[str]
+    accession_number: Mapped[str] = mapped_column(
+        String(30),
+        unique=True,
+    )
+
+    filing_url: Mapped[str]
+
+    local_path: Mapped[str | None]
+
+    status: Mapped[str] = mapped_column(
+        String(30),
+        default="PENDING",
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+    )
 
     company = relationship(
         "Company",
