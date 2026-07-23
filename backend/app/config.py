@@ -43,6 +43,7 @@ class Settings(BaseSettings):
     EMBEDDING_PROVIDER: str = "gemini"
     GEMINI_API_KEY: str
     GEMINI_EMBEDDING_MODEL: str = "gemini-embedding-001"
+    GEMINI_MODEL: str = "gemini-2.5-flash"
 
     # ==========================================================
     # Vector Store (ChromaDB)
