@@ -1,0 +1,2 @@
+from app.repositories.company_repo import CompanyRepository
+from app.repositories.report_repo import ReportRepository
