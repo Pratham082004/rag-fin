@@ -1,11 +1,14 @@
 from dataclasses import dataclass
+import logging
 
 import httpx
+
+logger = logging.getLogger(__name__)
 
 USER_AGENT = "FinRAG AI contact@example.com"
 
 
-@dataclass
+@dataclass(slots=True)
 class FilingInfo:
     form: str
     filing_date: str
@@ -17,25 +20,35 @@ class SECFilingLookup:
 
     BASE_URL = "https://data.sec.gov/submissions"
 
-    def __init__(self):
+    def __init__(self) -> None:
+
         self.headers = {
             "User-Agent": USER_AGENT,
             "Accept": "application/json",
         }
 
-    def latest_filing(
+        self.timeout = 30
+
+    async def latest_filing(
         self,
         cik: str,
         form_type: str = "10-K",
     ) -> FilingInfo | None:
+        """
+        Returns the latest filing of the requested form type.
+
+        Example:
+            await latest_filing("0000320193", "10-K")
+        """
 
         url = f"{self.BASE_URL}/CIK{cik}.json"
 
-        response = httpx.get(
-            url,
+        async with httpx.AsyncClient(
             headers=self.headers,
-            timeout=30,
-        )
+            timeout=self.timeout,
+        ) as client:
+
+            response = await client.get(url)
 
         response.raise_for_status()
 
@@ -53,13 +66,29 @@ class SECFilingLookup:
             dates,
             accessions,
             documents,
+            strict=False,
         ):
-            if form == form_type:
-                return FilingInfo(
-                    form=form,
-                    filing_date=date,
-                    accession_number=accession,
-                    primary_document=document,
-                )
+
+            if form != form_type:
+                continue
+
+            logger.info(
+                "Found %s filing dated %s",
+                form,
+                date,
+            )
+
+            return FilingInfo(
+                form=form,
+                filing_date=date,
+                accession_number=accession,
+                primary_document=document,
+            )
+
+        logger.warning(
+            "No %s filing found for CIK %s",
+            form_type,
+            cik,
+        )
 
         return None

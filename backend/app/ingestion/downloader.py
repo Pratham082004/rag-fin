@@ -1,6 +1,9 @@
+from __future__ import annotations
+
+import json
+import logging
 from datetime import datetime, timezone
 from pathlib import Path
-import json
 
 import httpx
 
@@ -8,80 +11,40 @@ from app.config import settings
 from app.ingestion.company_lookup import CompanyInfo
 from app.ingestion.filing_lookup import FilingInfo
 
-USER_AGENT = "FinRAG AI (your-email@example.com)"
+logger = logging.getLogger(__name__)
+
+USER_AGENT = "FinRAG AI (contact@example.com)"
 
 
 class SECDownloader:
     """
     Downloads SEC filings and stores them locally.
-
-    Storage Structure:
-
-    storage/
-    └── reports/
-        └── AAPL/
-            └── 2025/
-                └── 10-K/
-                    └── 000032019325000079/
-                        ├── filing.html
-                        └── metadata.json
     """
 
     BASE_ARCHIVE = "https://www.sec.gov/Archives/edgar/data"
 
-    def __init__(self, client: httpx.Client | None = None):
-        self.client = client or httpx.Client(
-            headers={
-                "User-Agent": USER_AGENT,
-                "Accept": "text/html",
-            },
-            timeout=60,
-            follow_redirects=True,
-        )
+    def __init__(self) -> None:
 
-    def __enter__(self):
-        """Support: with SECDownloader() as downloader:"""
-        return self
+        self.headers = {
+            "User-Agent": USER_AGENT,
+            "Accept": "text/html",
+        }
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.close()
+        self.timeout = 60
 
-    def close(self):
-        """Close the underlying HTTP client."""
-        self.client.close()
-
-    def download(
+    async def download(
         self,
         company: CompanyInfo,
         filing: FilingInfo,
     ) -> Path:
-        """
-        Download a SEC filing and save it locally.
-
-        Parameters
-        ----------
-        company : CompanyInfo
-            Company metadata.
-
-        filing : FilingInfo
-            Filing metadata returned from SEC.
-
-        Returns
-        -------
-        Path
-            Local path to the downloaded HTML filing.
-        """
 
         ticker = company.ticker
-        company_name = company.name
         cik = company.cik
-
-        cik_folder = str(int(cik))
         accession = filing.accession_number.replace("-", "")
 
         filing_url = (
             f"{self.BASE_ARCHIVE}/"
-            f"{cik_folder}/"
+            f"{int(cik)}/"
             f"{accession}/"
             f"{filing.primary_document}"
         )
@@ -99,12 +62,23 @@ class SECDownloader:
         html_path = save_dir / "filing.html"
         metadata_path = save_dir / "metadata.json"
 
-        # Skip download if already present
         if html_path.exists():
-            print(f"✓ Filing already exists: {html_path}")
+
+            logger.info(
+                "Filing already downloaded: %s",
+                html_path,
+            )
+
             return html_path
 
-        response = self.client.get(filing_url)
+        async with httpx.AsyncClient(
+            headers=self.headers,
+            timeout=self.timeout,
+            follow_redirects=True,
+        ) as client:
+
+            response = await client.get(filing_url)
+
         response.raise_for_status()
 
         html_path.write_text(
@@ -113,7 +87,7 @@ class SECDownloader:
         )
 
         metadata = {
-            "company": company_name,
+            "company": company.name,
             "ticker": ticker,
             "cik": cik,
             "form": filing.form,
@@ -121,7 +95,9 @@ class SECDownloader:
             "accession_number": filing.accession_number,
             "primary_document": filing.primary_document,
             "download_url": filing_url,
-            "downloaded_at": datetime.now(timezone.utc).isoformat(),
+            "downloaded_at": datetime.now(
+                timezone.utc
+            ).isoformat(),
             "status": "DOWNLOADED",
         }
 
@@ -130,6 +106,9 @@ class SECDownloader:
             encoding="utf-8",
         )
 
-        print(f"✓ Downloaded: {html_path}")
+        logger.info(
+            "Downloaded filing to %s",
+            html_path,
+        )
 
         return html_path
