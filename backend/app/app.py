@@ -1,29 +1,49 @@
-from fastapi import FastAPI
-from sqlalchemy import text
+from contextlib import asynccontextmanager
 
-from .config import settings
-from app.database.database import engine
+from fastapi import FastAPI
+
+from app.api.router import api_router
+from app.dependencies import get_company_cache
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Startup and shutdown events.
+    """
+
+    # Startup
+    cache = get_company_cache()
+
+    try:
+        await cache.load()
+        print(
+            f"✅ Loaded {len(cache.company_records)} SEC companies."
+        )
+    except Exception as exc:
+        print(f"❌ Failed to load SEC company cache: {exc}")
+        raise
+
+    yield
+
+    # Shutdown
+    print("👋 Financial RAG API shutting down.")
 
 
 app = FastAPI(
-    title=settings.APP_NAME,
-    version=settings.APP_VERSION,
-    debug=settings.DEBUG,
+    title="Financial RAG API",
+    version="1.0.0",
+    lifespan=lifespan,
 )
 
+app.include_router(api_router)
+
+
 @app.get("/")
-def root():
+async def root():
     return {
-        "application": settings.APP_NAME,
-        "version": settings.APP_VERSION,
-        "status": "Running"
-    }
-
-@app.get("/db")
-def home():
-    with engine.connect() as conn:
-        conn.execute(text("SELECT 1"))
-
-    return {
-        "message": "Database Connected Successfully"
+        "message": "Financial RAG API",
+        "version": "1.0.0",
+        "status": "running",
+        "docs": "/docs",
     }
