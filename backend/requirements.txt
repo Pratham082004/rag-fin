@@ -1,10 +1,13 @@
-fastapi 
-uvicorn 
+fastapi
+uvicorn
 sqlalchemy
 psycopg2-binary
 python-dotenv
 pydantic-settings
 alembic
-requests
 httpx
 python-multipart
+google-genai
+beautifulsoup4
+lxml
+chromadb

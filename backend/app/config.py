@@ -1,45 +1,60 @@
 from functools import lru_cache
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-class settings(BaseSettings):
-    # configuration for App
+
+class Settings(BaseSettings):
+    # ==========================================================
+    # Application
+    # ==========================================================
     APP_NAME: str
     APP_VERSION: str
     DEBUG: bool
 
-    # configuration for Server
+    # ==========================================================
+    # Server
+    # ==========================================================
     HOST: str
     PORT: int
 
-    # configuration for Database
+    # ==========================================================
+    # PostgreSQL
+    # ==========================================================
     DB_HOST: str
     DB_PORT: int
     DB_NAME: str
     DB_USER: str
     DB_PASSWORD: str
 
-    # configuration for OpenAI
-    OPENAI_API_KEY: str
-
-    # configuration for Qdrant
-    QDRANT_HOST: str
-    QDRANT_PORT: int
-
-    # configuration for Redis
+    # ==========================================================
+    # Redis
+    # ==========================================================
     REDIS_HOST: str
     REDIS_PORT: int
 
-    # configuration for Storage
+    # ==========================================================
+    # Storage
+    # ==========================================================
     REPORT_STORAGE: str
 
-    # configuration for AI  
+    # ==========================================================
+    # Gemini
+    # ==========================================================
     EMBEDDING_PROVIDER: str = "gemini"
     GEMINI_API_KEY: str
     GEMINI_EMBEDDING_MODEL: str = "gemini-embedding-001"
 
+    # ==========================================================
+    # Vector Store (ChromaDB)
+    # ==========================================================
+    VECTOR_DB: str = "chroma"
+    CHROMA_PATH: str = "./storage/chroma"
+    CHROMA_COLLECTION: str = "financial_rag"
+    VECTOR_SIZE: int = 3072
+
     model_config = SettingsConfigDict(
         env_file=".env",
-        extra="ignore"
+        extra="ignore",
     )
 
     @property
@@ -52,8 +67,8 @@ class settings(BaseSettings):
 
 
 @lru_cache
-def get_settings() -> settings:
-    return settings()
+def get_settings() -> Settings:
+    return Settings()
 
 
 settings = get_settings()
